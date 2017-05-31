@@ -1,0 +1,12 @@
+server:
+  port: 9001
+  context-path: /ticketPrint
+
+netty:
+  port: 9000
+  keepAlive: true
+  backLog: 100
+  readTimeOut: 600
+  eventExecutor: 100
+  bossThreadCount: 1
+  workThreadCount: 2
