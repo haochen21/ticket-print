@@ -1,6 +1,7 @@
 package com.kangmeng.netty.handler;
 
 import com.kangmeng.netty.AttributeMapConstant;
+import com.kangmeng.netty.ChannelCache;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,24 +24,43 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
 			throws Exception {
 		String body = (String) msg;
+		logger.info("receive msg : ["
+				+ body + "]");
 		if(body.endsWith("AS01")){
 			Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-			String gatewayActorKey = attr.get();
+			String deviceKey = attr.get();
 			// 设备第一次上线
-			if (gatewayActorKey == null) {
+			if (deviceKey == null) {
 				String[] splits = body.split("\\*");
 				String deviceId = splits[1];
 				logger.info("device {} first login",deviceId);
-				gatewayActorKey = "merchant" + "-" + deviceId;
-				attr.setIfAbsent(gatewayActorKey);
+				attr.setIfAbsent(deviceId);
+
+				ChannelCache.INSTANCE.addChannel(deviceId,ctx);
 			}
 			//心跳
 			byte[] bytes = HEARTBEAT.getBytes("UTF-8");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);
 			ctx.write(byteBuf);
-			logger.info("receive heart beat : ["
-					+ body + "]");
+		}else if(body.endsWith("AS04")){
+			// 打印机已接收订单
+			String[] splits = body.split("\\*");
+			String cardId = splits[2];
+			String printCommand = "AS38*"+cardId+"*0#";
+			byte[] bytes = printCommand.getBytes("UTF-8");
+			ByteBuf byteBuf = Unpooled.buffer();
+			byteBuf.writeBytes(bytes);
+			ctx.write(byteBuf);
+		}else if(body.endsWith("AS05")){
+			// 打印机已打印订单
+			String[] splits = body.split("\\*");
+			String cardId = splits[2];
+			String printCommand = "AS39*"+cardId+"#";
+			byte[] bytes = printCommand.getBytes("UTF-8");
+			ByteBuf byteBuf = Unpooled.buffer();
+			byteBuf.writeBytes(bytes);
+			ctx.write(byteBuf);
 		}
 	}
 

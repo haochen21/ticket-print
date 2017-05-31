@@ -75,7 +75,7 @@ public class ClientServer {
 
 	public static void main(String[] args) {
 		// String host = "172.17.60.210";
-		String host = "127.0.0.1";
+		String host = "192.168.1.103";
 		int port = Integer.parseInt("9000");
 		ClientServer server = new ClientServer(host, port);
 		try {

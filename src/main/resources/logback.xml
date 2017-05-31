@@ -27,12 +27,14 @@
 			</pattern>
 		</encoder>
 	</appender>	
-	
+
+	<!--
 	<logger name="com.kangmeng">
 		<level value="INFO" />
 		<appender-ref ref="TICKETPRINTFILE" />
 	</logger>
-	
+	-->
+
 	<root level="INFO">
 		<appender-ref ref="STDOUT" />
 	</root>
