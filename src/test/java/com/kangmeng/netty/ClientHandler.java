@@ -14,7 +14,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-		logger.info("receive: " + ByteBufUtil.hexDump(msg));
+		//logger.info("receive: " + ByteBufUtil.hexDump(msg));
 
 		byte[] datas = new byte[msg.readableBytes()];
 		msg.readBytes(datas);

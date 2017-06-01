@@ -1,5 +1,7 @@
 package com.kangmeng.netty.handler;
 
+import com.kangmeng.GlobalContext;
+import com.kangmeng.message.CartMessageService;
 import com.kangmeng.netty.AttributeMapConstant;
 import com.kangmeng.netty.ChannelCache;
 import io.netty.buffer.ByteBuf;
@@ -11,14 +13,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class BizHandler extends ChannelInboundHandlerAdapter {
+
+	private CartMessageService cartMessageService;
 
 	private static final String HEARTBEAT = "AS02#";
 
 	private final static Logger logger = LoggerFactory.getLogger(BizHandler.class);
+
+	public BizHandler(){
+		cartMessageService = (CartMessageService) GlobalContext.getApplicationContext().getBean("cartMessageService");
+	}
 
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
@@ -37,6 +42,8 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 				attr.setIfAbsent(deviceId);
 
 				ChannelCache.INSTANCE.addChannel(deviceId,ctx);
+
+				cartMessageService.createMsgListener(deviceId);
 			}
 			//心跳
 			byte[] bytes = HEARTBEAT.getBytes("UTF-8");
@@ -70,8 +77,15 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 	}
 
 	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-		cause.printStackTrace();
-		ctx.close();// 发生异常，关闭链路
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		Assert.notNull(ctx, "ChannelHandlerContext must not be null");
+
+		Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
+		String deviceIdKey = attr.get();
+		if (deviceIdKey != null) {
+			logger.info("device {} link is offline",deviceIdKey);
+			ChannelCache.INSTANCE.removeChannel(deviceIdKey);
+			cartMessageService.removeMsgListener(deviceIdKey);
+		}
 	}
 }

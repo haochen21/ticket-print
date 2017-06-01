@@ -31,7 +31,6 @@ public class CustomChannelInitializer extends ChannelInitializer<SocketChannel> 
 
 		// 都属于ChannelOutboundHandler，逆序执行
 		ch.pipeline().addLast(eventExecutorGroup, new PrintInfoResponse());
-		//ch.pipeline().addLast(eventExecutorGroup, new PrintInfoEncoder());
 
 		// 都属于ChannelIntboundHandler，按照顺序执行
 		ch.pipeline().addLast(new IdleStateHandler(readTimeOut, 0, 0, TimeUnit.SECONDS));

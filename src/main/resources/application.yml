@@ -10,3 +10,8 @@ netty:
   eventExecutor: 100
   bossThreadCount: 1
   workThreadCount: 2
+
+kafka:
+    bootstrap:
+        servers:
+            - localhost:9092

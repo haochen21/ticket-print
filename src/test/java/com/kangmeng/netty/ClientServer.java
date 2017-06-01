@@ -28,7 +28,7 @@ public class ClientServer {
 
 	private ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(5);
 
-	private static final String HEARTBEAT = "A*设备ID*0*AS01#";
+	private static final String HEARTBEAT = "A*1896*0*AS01#";
 
 	private final static Logger logger = LoggerFactory.getLogger(ClientServer.class);
 
@@ -75,7 +75,7 @@ public class ClientServer {
 
 	public static void main(String[] args) {
 		// String host = "172.17.60.210";
-		String host = "192.168.1.103";
+		String host = "127.0.0.1";
 		int port = Integer.parseInt("9000");
 		ClientServer server = new ClientServer(host, port);
 		try {
