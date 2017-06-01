@@ -106,7 +106,7 @@ public class DeviceMsgListener extends Thread {
 			sb.append("#");
 
 			if (ChannelCache.INSTANCE.getChannel(deviceId) != null) {
-				byte[] bytes = sb.toString().getBytes("UTF-8");
+				byte[] bytes = sb.toString().getBytes("GBK");
 				ByteBuf byteBuf = Unpooled.buffer();
 				byteBuf.writeBytes(bytes);
 				ChannelCache.INSTANCE.getChannel(deviceId).writeAndFlush(byteBuf);

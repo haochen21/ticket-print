@@ -26,7 +26,7 @@ public class OrderTest {
 
     private static final int LINE_SPACE = 40;
 
-    private static final int MAX_WIDTH = 24;
+    private static final int MAX_WIDTH = 32;
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -70,12 +70,12 @@ public class OrderTest {
                     sb.append(count++);
                     // 数据分隔符
                     sb.append("*");
-                    sb.append("<S021>").append(getPrintOrderString(cart));
+                    sb.append(getPrintOrderString(cart));
                     // 数据结束标示符
                     sb.append("#");
 
                     if (ChannelCache.INSTANCE.getChannel("1896") != null) {
-                        byte[] bytes = sb.toString().getBytes("UTF-8");
+                        byte[] bytes = sb.toString().getBytes("GBK");
                         ByteBuf byteBuf = Unpooled.buffer();
                         byteBuf.writeBytes(bytes);
                         ChannelCache.INSTANCE.getChannel("1896").writeAndFlush(byteBuf);
@@ -85,7 +85,7 @@ public class OrderTest {
                 }
 
             }
-        }, 2, 60, TimeUnit.SECONDS);
+        }, 2, 30, TimeUnit.SECONDS);
 
     }
 
@@ -107,11 +107,11 @@ public class OrderTest {
         val += "*" + "提货时间:" + DATE_FORMAT.format(cart.getTakeTime());
         val += "*" + DIVIDING_LINE;
 
-        val += "*" + "商品名称" + getBlank(4) + "价格" + getBlank(1) + "数量" + getBlank(7) + "金额";
+        val += "*" + "商品名称" + getBlank(4) + "价格" + getBlank(3) + "数量" + getBlank(5) + "金额";
         for(CartItem item : cart.getCartItems()){
             String productName = item.getName();
             String name = productName.substring(0,  productName.length() > 13 ? 13 : productName.length());
-            val += "*" + name + "*";
+            val += "*" + name;
 
             String price = formatPrice(item.getUnitPrice().doubleValue());
             String quantity = formatQuantity(item.getQuantity());
@@ -143,7 +143,7 @@ public class OrderTest {
     }
 
     private String formatProduct(String s) {
-        return getBlank(MAX_WIDTH - s.length()) + s;
+        return getBlank(MAX_WIDTH-4 - s.length()) + s;
     }
 
     private String formatPrice(double price) {

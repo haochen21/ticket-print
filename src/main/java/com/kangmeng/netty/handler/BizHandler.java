@@ -44,18 +44,30 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 				ChannelCache.INSTANCE.addChannel(deviceId,ctx);
 
 				cartMessageService.createMsgListener(deviceId);
+
+				//心跳
+				byte[] bytes = HEARTBEAT.getBytes("GBK");
+				ByteBuf byteBuf = Unpooled.buffer();
+				byteBuf.writeBytes(bytes);
+				ctx.write(byteBuf);
+
+				byte[] bytes1 = "AS48*1#".getBytes("GBK");
+				ByteBuf byteBuf1 = Unpooled.buffer();
+				byteBuf1.writeBytes(bytes1);
+				ctx.write(byteBuf1);
 			}
 			//心跳
-			byte[] bytes = HEARTBEAT.getBytes("UTF-8");
+			byte[] bytes = HEARTBEAT.getBytes("GBK");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);
 			ctx.write(byteBuf);
+
 		}else if(body.endsWith("AS04")){
 			// 打印机已接收订单
 			String[] splits = body.split("\\*");
 			String cardId = splits[2];
 			String printCommand = "AS38*"+cardId+"*0#";
-			byte[] bytes = printCommand.getBytes("UTF-8");
+			byte[] bytes = printCommand.getBytes("GBK");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);
 			ctx.write(byteBuf);
@@ -64,7 +76,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 			String[] splits = body.split("\\*");
 			String cardId = splits[2];
 			String printCommand = "AS39*"+cardId+"#";
-			byte[] bytes = printCommand.getBytes("UTF-8");
+			byte[] bytes = printCommand.getBytes("GBK");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);
 			ctx.write(byteBuf);
