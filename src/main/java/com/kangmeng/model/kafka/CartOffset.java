@@ -18,7 +18,7 @@ public class CartOffset implements Serializable{
 	@GeneratedValue(generator = Constants.ID_GENERATOR)
 	protected Long id;
 
-	@Column(name = "PARTITION")
+	@Column(name = "KAFKAPARTITION")
 	protected Integer partition;
 
 	@Column(name = "OFFSET")

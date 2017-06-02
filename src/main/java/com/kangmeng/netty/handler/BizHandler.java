@@ -28,7 +28,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 
 	public BizHandler(){
 		cartMessageService = (CartMessageService) GlobalContext.getApplicationContext().getBean("cartMessageService");
-		offsetService = (OffsetService)GlobalContext.getApplicationContext().getBean("offsetService");
+		//offsetService = (OffsetService)GlobalContext.getApplicationContext().getBean("OffsetService");
 	}
 
 	@Override

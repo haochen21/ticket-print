@@ -30,7 +30,7 @@ public class OffsetServiceImpl implements OffsetService {
 
 	@Override
 	public Long getOffset(Integer partition) {
-		return null;
+		return cartOffsetRepository.getOffset(partition);
 	}
 
 	@Override

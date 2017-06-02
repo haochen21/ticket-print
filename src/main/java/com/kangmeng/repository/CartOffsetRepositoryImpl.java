@@ -13,10 +13,13 @@ public class CartOffsetRepositoryImpl implements CartOffsetRepositoryCustom {
 		String sql = "SELECT MAX(c.offset) FROM CartOffset c where c.partition = :partition AND c.printed = true";
 		Query query = em.createQuery(sql);
 		query.setParameter("partition", partition);
-		long number = ((Number) query.getSingleResult()).longValue();
-		if (number > 0)
+		Object value = query.getSingleResult();
+		if(value != null){
+			long number = ((Number) query.getSingleResult()).longValue();
 			return number;
-		else
+		}
+		else {
 			return 0L;
+		}
 	}
 }

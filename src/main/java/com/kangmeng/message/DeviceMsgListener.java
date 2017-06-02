@@ -110,7 +110,7 @@ public class DeviceMsgListener extends Thread {
 	}
 
 	private long getOffsetFromDB(TopicPartition partition) {
-		long offset = this.offsetService.getOffset(partition.partition());
+		long offset = offsetService.getOffset(partition.partition());
 		return offset;
 	}
 
