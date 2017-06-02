@@ -2,11 +2,38 @@ server:
   port: 9001
   context-path: /ticketPrint
 
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/ticket?characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2b8&useSSL=false
+    username: root
+    password: Kangmeng*123
+    driver-class-name: com.mysql.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        use_identifier_rollback: true
+        dialect: org.hibernate.dialect.MySQL5Dialect
+        hikari:
+          dataSource:
+            cachePrepStmts:true
+            prepStmtCacheSize:250
+            prepStmtCacheSqlLimit:2048
+            useServerPrepStmts:true
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: com.kangmeng.config.db.TableNamingStrategy
+
 netty:
   port: 9000
   keepAlive: true
   backLog: 100
-  readTimeOut: 600
+  readTimeOut: 60
   eventExecutor: 100
   bossThreadCount: 1
   workThreadCount: 2
@@ -14,4 +41,4 @@ netty:
 kafka:
     bootstrap:
         servers:
-            - localhost:9092
+            - 127.0.0.1:9092

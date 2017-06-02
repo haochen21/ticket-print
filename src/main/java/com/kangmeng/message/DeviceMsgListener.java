@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangmeng.model.order.Cart;
 import com.kangmeng.model.order.CartItem;
 import com.kangmeng.netty.ChannelCache;
+import com.kangmeng.service.OffsetService;
+import com.sun.org.apache.xalan.internal.xsltc.util.IntegerArray;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +27,14 @@ public class DeviceMsgListener extends Thread {
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private Properties properties;
 	private String deviceId;
+	private OffsetService offsetService;
 	private KafkaConsumer<String, String> consumer;
 
 	private static final String DIVIDING_LINE;
 
-	private static final int LINE_SPACE = 40;
+	private static final int MAX_WIDTH = 32;
 
-	private static final int MAX_WIDTH = 24;
+	private static final String LINE_BREAK = "*";
 
 	private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -44,10 +48,11 @@ public class DeviceMsgListener extends Thread {
 		DIVIDING_LINE = sb.toString();
 	}
 
-	public DeviceMsgListener(Properties properties, String deviceId) {
+	public DeviceMsgListener(Properties properties, String deviceId, OffsetService offsetService) {
 		super(deviceId);
 		this.properties = properties;
 		this.deviceId = deviceId;
+		this.offsetService = offsetService;
 		createConsumer();
 	}
 
@@ -60,22 +65,25 @@ public class DeviceMsgListener extends Thread {
 	@Override
 	public void run() {
 		try {
+			consumer.poll(0);
+			for (TopicPartition partition : consumer.assignment()) {
+				consumer.seek(partition, getOffsetFromDB(partition));
+			}
 			while (!closed.get()) {
 				ConsumerRecords<String, String> records = consumer.poll(100);
-				for (ConsumerRecord<String, String> record : records){
-					consumerValue(record.value());
-					consumer.commitAsync();
+				for (ConsumerRecord<String, String> record : records) {
+					Integer partition = Integer.parseInt("" + record.partition());
+					Long offset = Long.parseLong("" + record.offset());
+					Cart cart = convertJson(record.value());
+					saveOffset(cart.getId(), partition, offset);
+					consumerValue(cart);
 				}
 			}
 		} catch (WakeupException e) {
 			if (!closed.get())
 				throw e;
 		} finally {
-			try {
-				consumer.commitSync();
-			} finally {
-				consumer.close();
-			}
+			consumer.close();
 		}
 	}
 
@@ -84,12 +92,30 @@ public class DeviceMsgListener extends Thread {
 		consumer.wakeup();
 	}
 
-	public void consumerValue(String cartJson) {
+	private Cart convertJson(String cartJson) {
+		Cart cart = null;
 		ObjectMapper objectMapper = new ObjectMapper();
 		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		try {
-			Cart cart = objectMapper.readValue(cartJson, Cart.class);
+			cart = objectMapper.readValue(cartJson, Cart.class);
+		} catch (Exception ex) {
+			logger.info("parse json error", ex);
+		}
+		return cart;
 
+	}
+
+	private void saveOffset(Long cartId, Integer partition, Long offset) {
+		this.offsetService.saveOffset(cartId, partition, offset);
+	}
+
+	private long getOffsetFromDB(TopicPartition partition) {
+		long offset = this.offsetService.getOffset(partition.partition());
+		return offset;
+	}
+
+	private void consumerValue(Cart cart) {
+		try {
 			StringBuilder sb = new StringBuilder();
 			// 数据起始标示符
 			sb.append("&!");
@@ -98,10 +124,10 @@ public class DeviceMsgListener extends Thread {
 			// 接受方式
 			sb.append("1");
 			// 订单号
-			sb.append(cart.getId());
+			sb.append("订单编号:").append(cart.getId());
 			// 数据分隔符
 			sb.append("*");
-			sb.append("<S021>").append(getPrintOrderString(cart));
+			sb.append(getPrintOrderString(cart));
 			// 数据结束标示符
 			sb.append("#");
 
@@ -112,34 +138,31 @@ public class DeviceMsgListener extends Thread {
 				ChannelCache.INSTANCE.getChannel(deviceId).writeAndFlush(byteBuf);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.info("handle cart error", ex);
 		}
 
 	}
 
 	private String getPrintOrderString(Cart cart) {
-		String val = getBlank(MAX_WIDTH);
+		String val = getBlank(MAX_WIDTH, " ");
 
-		String oneLineStr = "订单编号:" + cart.getId() + "  " + "用户名:" + cart.getCustomer().getName();
-		int lengthWithChinese = getLengthWithChinese(oneLineStr);
-		if (lengthWithChinese <= MAX_WIDTH) {
-			// 一行显示
-			val += "*" + oneLineStr;
-		} else {
-			// 两行显示
-			val += "*" + "订单编号:" + cart.getId();
-			val += "*" + "用户名:" + cart.getCustomer().getName();
+		val += LINE_BREAK + "用户名:" + cart.getCustomer().getName();
+		if (cart.getCustomer().getPhone() != null && !cart.getCustomer().getPhone().equals("")) {
+			val += LINE_BREAK + "电  话:" + cart.getCustomer().getPhone();
 		}
-
-		val += "*" + "下单时间:" + DATE_FORMAT.format(cart.getCreatedOn());
-		val += "*" + "提货时间:" + DATE_FORMAT.format(cart.getTakeTime());
-		val += "*" + DIVIDING_LINE;
-
-		val += "*" + "商品名称" + getBlank(4) + "价格" + getBlank(1) + "数量" + getBlank(7) + "金额";
-		for(CartItem item : cart.getCartItems()){
+		if (cart.getCustomer().getAddress() != null && !cart.getCustomer().getAddress().equals("")) {
+			val += LINE_BREAK + "地  址:" + cart.getCustomer().getAddress();
+		}
+		val += LINE_BREAK + DIVIDING_LINE;
+		val += LINE_BREAK + "下单时间:" + DATE_FORMAT.format(cart.getCreatedOn());
+		val += LINE_BREAK + "提货时间:" + DATE_FORMAT.format(cart.getTakeTime());
+		val += LINE_BREAK + DIVIDING_LINE;
+		val += LINE_BREAK + "商品名称" + getBlank(4, " ") + "价格" + getBlank(3, " ") + "数量" + getBlank(5, " ") + "金额";
+		for (CartItem item : cart.getCartItems()) {
 			String productName = item.getName();
-			String name = productName.substring(0,  productName.length() > 13 ? 13 : productName.length());
-			val += "*" + name + "*";
+			String name = productName.substring(0, productName.length() > 12 ? 12 : productName.length());
+			val += LINE_BREAK + name;
+			val += getBlank(12 - getLengthWithChinese(name), " ");
 
 			String price = formatPrice(item.getUnitPrice().doubleValue());
 			String quantity = formatQuantity(item.getQuantity());
@@ -147,31 +170,31 @@ public class DeviceMsgListener extends Thread {
 			val += formatProduct(price + quantity + productTotalPrice);
 		}
 
-		if(cart.getRemark() != null){
-			val += "*" + DIVIDING_LINE;
-			val += "*" + "备注: " + cart.getRemark();
+		if (cart.getRemark() != null) {
+			val += LINE_BREAK + DIVIDING_LINE;
+			val += LINE_BREAK + "备注: " + cart.getRemark();
 
 		}
 
-		val += "*" + DIVIDING_LINE;
+		val += LINE_BREAK + DIVIDING_LINE;
 
-		val += "*" + formatTotalSumPrice(cart.getTotalPrice().doubleValue());
-		val += "*" + getBlank(MAX_WIDTH);
-		val += "*" + getCenterString("谢谢惠顾! 康萌预约宝", MAX_WIDTH);
+		val += LINE_BREAK + formatTotalSumPrice(cart.getTotalPrice().doubleValue());
+		val += LINE_BREAK + getBlank(MAX_WIDTH, " ");
+		val += LINE_BREAK + getCenterString("谢谢惠顾! 康萌预约宝", MAX_WIDTH);
 
 		return val;
 	}
 
-	private String getBlank(int width) {
+	private String getBlank(int width, String remark) {
 		StringBuffer sb = new StringBuffer("");
 		for (int i = 0; i < width; i++) {
-			sb.append(" ");
+			sb.append(remark);
 		}
 		return sb.toString();
 	}
 
 	private String formatProduct(String s) {
-		return getBlank(MAX_WIDTH - s.length()) + s;
+		return s;
 	}
 
 	private String formatPrice(double price) {
@@ -179,22 +202,23 @@ public class DeviceMsgListener extends Thread {
 	}
 
 	private String formatQuantity(int quantity) {
-		return getBlank(5 - ("" + quantity).length()) + quantity;
+		return getBlank(5 - ("" + quantity).length(), " ") + quantity;
 	}
 
 	private String formatTotalPrice(double totalPrice) {
 		String totalPriceStr = DECIMAL_FORMAT.format(totalPrice);
-		return getBlank(11 - totalPriceStr.length()) + totalPriceStr;
+		return getBlank(11 - totalPriceStr.length(), " ") + totalPriceStr;
 	}
 
 	private String formatTotalSumPrice(double totalSumPrice) {
 		String totalSumPriceStr = DECIMAL_FORMAT.format(totalSumPrice);
-		return getBlank(MAX_WIDTH - totalSumPriceStr.length() - 8) + "总金额: " + totalSumPriceStr;
+		return getBlank(MAX_WIDTH - totalSumPriceStr.length() - 8, " ") + "总金额: " + totalSumPriceStr;
 	}
 
 	private String getCenterString(String val, int maxWidth) {
 		String ret = "";
-		if (val == null || val.length()==0) return ret;
+		if (val == null || val.length() == 0)
+			return ret;
 
 		int chineseLength = getLengthWithChinese(val);
 		if (maxWidth > chineseLength) {
@@ -211,7 +235,8 @@ public class DeviceMsgListener extends Thread {
 	/**
 	 * 获取字符串的长度，如果有中文，则每个中文字符计为2位
 	 *
-	 * @param validateStr 指定的字符串
+	 * @param validateStr
+	 *            指定的字符串
 	 * @return 字符串的长度
 	 */
 	public int getLengthWithChinese(String validateStr) {
@@ -236,7 +261,8 @@ public class DeviceMsgListener extends Thread {
 	 * 根据Unicode编码完美的判断中文汉字和符号
 	 * http://www.micmiu.com/lang/java/java-check-chinese/
 	 *
-	 * @param c 要判断的字符
+	 * @param c
+	 *            要判断的字符
 	 * @return 是否是中文字符
 	 */
 	public boolean isChinese(char c) {

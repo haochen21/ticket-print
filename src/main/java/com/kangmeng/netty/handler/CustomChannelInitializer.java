@@ -1,5 +1,6 @@
 package com.kangmeng.netty.handler;
 
+import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
@@ -37,7 +38,7 @@ public class CustomChannelInitializer extends ChannelInitializer<SocketChannel> 
 		ch.pipeline().addLast(new ReadTimeOutHandler());
 		ch.pipeline().addLast(new DelimiterBasedFrameDecoder(512,
 				delimiter));
-		ch.pipeline().addLast(new StringDecoder());
+		ch.pipeline().addLast(new StringDecoder(Charset.forName("GBK")));
 		ch.pipeline().addLast(eventExecutorGroup, new BizHandler());
 
 	}

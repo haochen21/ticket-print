@@ -16,6 +16,8 @@ public class Customer implements Serializable {
 
 	protected String phone;
 
+	protected String address;
+
 	private static final long serialVersionUID = 89421814089152615L;
 
 	public Customer() {
@@ -69,5 +71,13 @@ public class Customer implements Serializable {
 
 	public void setCardNo(String cardNo) {
 		this.cardNo = cardNo;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
 	}
 }

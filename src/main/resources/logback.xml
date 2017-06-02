@@ -1,6 +1,6 @@
 <configuration>
 
-    <property name="LOG_HOME" value="d:\\ticketPrint\\log" />
+    <property name="LOG_HOME" value="/root/ticketPrint/log" />
     
     <appender name="TICKETPRINTFILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -28,12 +28,10 @@
 		</encoder>
 	</appender>	
 
-	<!--
 	<logger name="com.kangmeng">
 		<level value="INFO" />
 		<appender-ref ref="TICKETPRINTFILE" />
 	</logger>
-	-->
 
 	<root level="INFO">
 		<appender-ref ref="STDOUT" />

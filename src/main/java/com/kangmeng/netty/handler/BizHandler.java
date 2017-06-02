@@ -4,6 +4,8 @@ import com.kangmeng.GlobalContext;
 import com.kangmeng.message.CartMessageService;
 import com.kangmeng.netty.AttributeMapConstant;
 import com.kangmeng.netty.ChannelCache;
+import com.kangmeng.repository.CartOffsetRepository;
+import com.kangmeng.service.OffsetService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,11 +13,14 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 
 public class BizHandler extends ChannelInboundHandlerAdapter {
 
 	private CartMessageService cartMessageService;
+
+	OffsetService offsetService;
 
 	private static final String HEARTBEAT = "AS02#";
 
@@ -23,6 +28,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 
 	public BizHandler(){
 		cartMessageService = (CartMessageService) GlobalContext.getApplicationContext().getBean("cartMessageService");
+		offsetService = (OffsetService)GlobalContext.getApplicationContext().getBean("offsetService");
 	}
 
 	@Override
@@ -50,11 +56,6 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 				ByteBuf byteBuf = Unpooled.buffer();
 				byteBuf.writeBytes(bytes);
 				ctx.write(byteBuf);
-
-				byte[] bytes1 = "AS48*1#".getBytes("GBK");
-				ByteBuf byteBuf1 = Unpooled.buffer();
-				byteBuf1.writeBytes(bytes1);
-				ctx.write(byteBuf1);
 			}
 			//心跳
 			byte[] bytes = HEARTBEAT.getBytes("GBK");
@@ -67,6 +68,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 			String[] splits = body.split("\\*");
 			String cardId = splits[2];
 			String printCommand = "AS38*"+cardId+"*0#";
+			logger.info("response receive,command is: {}", printCommand);
 			byte[] bytes = printCommand.getBytes("GBK");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);
@@ -74,8 +76,15 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 		}else if(body.endsWith("AS05")){
 			// 打印机已打印订单
 			String[] splits = body.split("\\*");
-			String cardId = splits[2];
-			String printCommand = "AS39*"+cardId+"#";
+			String orderId = splits[2];
+
+			String[] cartIds = orderId.split(":");
+			Long cartId = Long.parseLong(cartIds[1]);
+			offsetService.savePrinted(cartId);
+
+			String printCommand = "AS39*"+orderId+"#";
+			logger.info("response print,command is: {}", printCommand);
+
 			byte[] bytes = printCommand.getBytes("GBK");
 			ByteBuf byteBuf = Unpooled.buffer();
 			byteBuf.writeBytes(bytes);

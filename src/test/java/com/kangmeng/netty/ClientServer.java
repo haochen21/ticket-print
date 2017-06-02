@@ -65,7 +65,7 @@ public class ClientServer {
 					byteBuf.writeBytes(bytes);
 					socketChannel.writeAndFlush(byteBuf);
 				}
-			}, 2,1, TimeUnit.SECONDS);
+			}, 2,30, TimeUnit.SECONDS);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -74,7 +74,7 @@ public class ClientServer {
 	}
 
 	public static void main(String[] args) {
-		// String host = "172.17.60.210";
+		//String host = "120.25.90.244";
 		String host = "127.0.0.1";
 		int port = Integer.parseInt("9000");
 		ClientServer server = new ClientServer(host, port);

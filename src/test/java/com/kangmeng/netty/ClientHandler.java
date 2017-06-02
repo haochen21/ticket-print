@@ -19,7 +19,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 		byte[] datas = new byte[msg.readableBytes()];
 		msg.readBytes(datas);
 
-		System.out.println("Client received: " + new String(datas, "utf-8"));
+		System.out.println("Client received: " + new String(datas, "GBK"));
 	}
 
 	@Override
