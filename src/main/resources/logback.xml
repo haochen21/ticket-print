@@ -1,6 +1,6 @@
 <configuration>
 
-    <property name="LOG_HOME" value="/root/ticketPrint/log" />
+    <property name="LOG_HOME" value="./log" />
     
     <appender name="TICKETPRINTFILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">

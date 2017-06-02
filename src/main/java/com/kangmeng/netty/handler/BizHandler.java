@@ -51,7 +51,8 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 				cartMessageService.createMsgListener(deviceId);
 
 				//心跳
-				byte[] bytes = HEARTBEAT.getBytes("GBK");
+				String command = HEARTBEAT+"AS48*1#";
+				byte[] bytes = command.getBytes("GBK");
 				ByteBuf byteBuf = Unpooled.buffer();
 				byteBuf.writeBytes(bytes);
 				ctx.write(byteBuf);

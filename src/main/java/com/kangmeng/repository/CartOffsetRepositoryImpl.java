@@ -19,7 +19,7 @@ public class CartOffsetRepositoryImpl implements CartOffsetRepositoryCustom {
 			return number;
 		}
 		else {
-			return 0L;
+			return null;
 		}
 	}
 }

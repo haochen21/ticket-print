@@ -22,10 +22,11 @@ public class OffsetServiceImpl implements OffsetService {
 			cartOffset = new CartOffset();
 			cartOffset.setId(cartId);
 		}
-		if (cartOffset != null && cartOffset.getPartition() != null) {
+		if (cartOffset != null && cartOffset.getPartition() == null) {
 			cartOffset.setPartition(partition);
 			cartOffset.setOffset(offset);
 		}
+		cartOffsetRepository.save(cartOffset);
 	}
 
 	@Override
@@ -34,6 +35,7 @@ public class OffsetServiceImpl implements OffsetService {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void savePrinted(Long cartId) {
 		CartOffset cartOffset = cartOffsetRepository.findOne(cartId);
 		if (cartOffset != null) {

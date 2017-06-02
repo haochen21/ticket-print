@@ -66,8 +66,17 @@ public class DeviceMsgListener extends Thread {
 	public void run() {
 		try {
 			consumer.poll(0);
+			List<TopicPartition> partitions = new ArrayList<>();
 			for (TopicPartition partition : consumer.assignment()) {
-				consumer.seek(partition, getOffsetFromDB(partition));
+				Long offset = getOffsetFromDB(partition);
+				if(offset != null){
+					consumer.seek(partition, offset+1);
+				}else {
+					partitions.add(partition);
+				}
+			}
+			if(partitions.size() >0){
+				consumer.seekToEnd(partitions);
 			}
 			while (!closed.get()) {
 				ConsumerRecords<String, String> records = consumer.poll(100);
@@ -77,6 +86,7 @@ public class DeviceMsgListener extends Thread {
 					Cart cart = convertJson(record.value());
 					saveOffset(cart.getId(), partition, offset);
 					consumerValue(cart);
+					logger.info("get from kfaka,cart id is {}",cart.getId());
 				}
 			}
 		} catch (WakeupException e) {
@@ -109,8 +119,8 @@ public class DeviceMsgListener extends Thread {
 		this.offsetService.saveOffset(cartId, partition, offset);
 	}
 
-	private long getOffsetFromDB(TopicPartition partition) {
-		long offset = offsetService.getOffset(partition.partition());
+	private Long getOffsetFromDB(TopicPartition partition) {
+		Long offset = offsetService.getOffset(partition.partition());
 		return offset;
 	}
 

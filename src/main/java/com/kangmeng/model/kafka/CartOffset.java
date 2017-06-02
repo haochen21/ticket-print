@@ -11,11 +11,10 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "CART")
+@Table(name = "CARTOFFSET")
 public class CartOffset implements Serializable{
 
 	@Id
-	@GeneratedValue(generator = Constants.ID_GENERATOR)
 	protected Long id;
 
 	@Column(name = "KAFKAPARTITION")
