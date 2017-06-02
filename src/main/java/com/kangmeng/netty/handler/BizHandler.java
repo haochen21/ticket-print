@@ -13,22 +13,21 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 
 public class BizHandler extends ChannelInboundHandlerAdapter {
 
 	private CartMessageService cartMessageService;
 
-	OffsetService offsetService;
+	private OffsetService offsetService;
 
 	private static final String HEARTBEAT = "AS02#";
 
 	private final static Logger logger = LoggerFactory.getLogger(BizHandler.class);
 
-	public BizHandler(){
-		cartMessageService = (CartMessageService) GlobalContext.getApplicationContext().getBean("cartMessageService");
-		//offsetService = (OffsetService)GlobalContext.getApplicationContext().getBean("OffsetService");
+	public BizHandler(CartMessageService cartMessageService,OffsetService offsetService){
+		this.cartMessageService = cartMessageService;
+		this.offsetService = offsetService;
 	}
 
 	@Override

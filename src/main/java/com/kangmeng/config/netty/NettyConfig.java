@@ -1,6 +1,8 @@
 package com.kangmeng.config.netty;
 
+import com.kangmeng.message.CartMessageService;
 import com.kangmeng.netty.handler.CustomChannelInitializer;
+import com.kangmeng.service.OffsetService;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,12 @@ public class NettyConfig {
 
 	@Autowired
 	private NettyProperties nettyProperties;
+
+	@Autowired
+	private CartMessageService cartMessageService;
+
+	@Autowired
+	private OffsetService offsetService;
 
 	public NettyConfig() {
 
@@ -59,7 +67,8 @@ public class NettyConfig {
 	@Qualifier("customChannelInitializer")
 	private CustomChannelInitializer customChannelInitializer() {
 		final EventExecutorGroup eventExecutorGroup = new DefaultEventExecutorGroup(nettyProperties.getEventExecutor());
-		return new CustomChannelInitializer(eventExecutorGroup, nettyProperties.getReadTimeOut());
+		return new CustomChannelInitializer(eventExecutorGroup, cartMessageService, offsetService,
+				nettyProperties.getReadTimeOut());
 	}
 
 	@SuppressWarnings("unchecked")
