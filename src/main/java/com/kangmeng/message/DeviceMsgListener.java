@@ -156,16 +156,39 @@ public class DeviceMsgListener extends Thread {
 	private String getPrintOrderString(Cart cart) {
 		String val = getBlank(MAX_WIDTH, " ");
 
-		val += LINE_BREAK + "用户名:" + cart.getCustomer().getName();
-		if (cart.getCustomer().getPhone() != null && !cart.getCustomer().getPhone().equals("")) {
-			val += LINE_BREAK + "电  话:" + cart.getCustomer().getPhone();
+		if(cart.getNeedPay()){
+			String value = LINE_BREAK +"<S021>" + "订单已支付";
+			if(cart.getTakeOut()){
+				value+=getBlank(this.MAX_WIDTH - 14, " ")+"外卖";
+			}
+			val += value;
+		}else if(cart.getTakeOut()){
+			val += LINE_BREAK+"<S021>" +getBlank(this.MAX_WIDTH - 4, " ")+"外卖";
 		}
-		if (cart.getCustomer().getAddress() != null && !cart.getCustomer().getAddress().equals("")) {
-			val += LINE_BREAK + "地  址:" + cart.getCustomer().getAddress();
+		if(cart.getTakeOut()){
+			val += LINE_BREAK + "用户名:" + cart.getName();
+		}else{
+			val += LINE_BREAK + "用户名:" + cart.getCustomer().getName();
 		}
+
+		if(cart.getTakeOut()){
+			val += LINE_BREAK + "电  话:" + cart.getPhone();
+		}else {
+			if (cart.getCustomer().getPhone() != null && !cart.getCustomer().getPhone().equals("")) {
+				val += LINE_BREAK + "电  话:" + cart.getCustomer().getPhone();
+			}
+		}
+
+		if(cart.getTakeOut()){
+			val += LINE_BREAK + "地  址:" + cart.getAddress();
+		}else {
+			if (cart.getCustomer().getAddress() != null && !cart.getCustomer().getAddress().equals("")) {
+				val += LINE_BREAK + "地  址:" + cart.getCustomer().getAddress();
+			}
+		}
+
 		val += LINE_BREAK + DIVIDING_LINE;
 		val += LINE_BREAK + "下单时间:" + DATE_FORMAT.format(cart.getCreatedOn());
-		val += LINE_BREAK + "提货时间:" + DATE_FORMAT.format(cart.getTakeTime());
 		val += LINE_BREAK + DIVIDING_LINE;
 		val += LINE_BREAK + "商品名称" + getBlank(4, " ") + "价格" + getBlank(3, " ") + "数量" + getBlank(5, " ") + "金额";
 		for (CartItem item : cart.getCartItems()) {

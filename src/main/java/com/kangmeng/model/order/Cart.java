@@ -15,6 +15,12 @@ public class Cart implements Serializable {
 
 	protected String no;
 
+	protected String name;
+
+	protected String phone;
+
+	protected String address;
+
 	protected Merchant merchant;
 
 	protected Customer customer;
@@ -43,6 +49,8 @@ public class Cart implements Serializable {
 
 	protected String remark;
 
+	protected Boolean takeOut;
+
 	protected Collection<CartItem> cartItems = new ArrayList<CartItem>();
 
 	protected long version;
@@ -69,6 +77,30 @@ public class Cart implements Serializable {
 
 	public void setNo(String no) {
 		this.no = no;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
 	}
 
 	public Merchant getMerchant() {
@@ -205,5 +237,13 @@ public class Cart implements Serializable {
 
 	public void setCardUsed(Boolean cardUsed) {
 		this.cardUsed = cardUsed;
+	}
+
+	public Boolean getTakeOut() {
+		return takeOut;
+	}
+
+	public void setTakeOut(Boolean takeOut) {
+		this.takeOut = takeOut;
 	}
 }
