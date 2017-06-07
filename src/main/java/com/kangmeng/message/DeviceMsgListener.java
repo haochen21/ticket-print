@@ -59,7 +59,7 @@ public class DeviceMsgListener extends Thread {
 	private void createConsumer() {
 		properties.put(ConsumerConfig.GROUP_ID_CONFIG, deviceId);
 		consumer = new KafkaConsumer<>(properties);
-		consumer.subscribe(Arrays.asList(deviceId));
+		consumer.subscribe(Arrays.asList("print-"+deviceId));
 	}
 
 	@Override
