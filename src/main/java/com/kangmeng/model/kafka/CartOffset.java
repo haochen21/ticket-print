@@ -17,6 +17,9 @@ public class CartOffset implements Serializable{
 	@Id
 	protected Long id;
 
+	@Column(name = "TOPIC")
+	protected String topic;
+
 	@Column(name = "KAFKAPARTITION")
 	protected Integer partition;
 
@@ -36,6 +39,14 @@ public class CartOffset implements Serializable{
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getTopic() {
+		return topic;
+	}
+
+	public void setTopic(String topic) {
+		this.topic = topic;
 	}
 
 	public Integer getPartition() {

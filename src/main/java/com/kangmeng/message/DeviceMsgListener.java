@@ -24,11 +24,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DeviceMsgListener extends Thread {
 
 	private final static Logger logger = LoggerFactory.getLogger(DeviceMsgListener.class);
+
 	private final AtomicBoolean closed = new AtomicBoolean(false);
+
 	private Properties properties;
+
 	private String deviceId;
+
 	private OffsetService offsetService;
+
 	private KafkaConsumer<String, String> consumer;
+
+	private String topic;
 
 	private static final String DIVIDING_LINE;
 
@@ -53,13 +60,14 @@ public class DeviceMsgListener extends Thread {
 		this.properties = properties;
 		this.deviceId = deviceId;
 		this.offsetService = offsetService;
+		this.topic = "print-"+deviceId;
 		createConsumer();
 	}
 
 	private void createConsumer() {
 		properties.put(ConsumerConfig.GROUP_ID_CONFIG, deviceId);
 		consumer = new KafkaConsumer<>(properties);
-		consumer.subscribe(Arrays.asList("print-"+deviceId));
+		consumer.subscribe(Arrays.asList(topic));
 	}
 
 	@Override
@@ -84,7 +92,7 @@ public class DeviceMsgListener extends Thread {
 					Integer partition = Integer.parseInt("" + record.partition());
 					Long offset = Long.parseLong("" + record.offset());
 					Cart cart = convertJson(record.value());
-					saveOffset(cart.getId(), partition, offset);
+					saveOffset(cart.getId(), partition,offset);
 					consumerValue(cart);
 					logger.info("get from kfaka,cart id is {}",cart.getId());
 				}
@@ -116,11 +124,11 @@ public class DeviceMsgListener extends Thread {
 	}
 
 	private void saveOffset(Long cartId, Integer partition, Long offset) {
-		this.offsetService.saveOffset(cartId, partition, offset);
+		this.offsetService.saveOffset(cartId, topic, partition, offset);
 	}
 
 	private Long getOffsetFromDB(TopicPartition partition) {
-		Long offset = offsetService.getOffset(partition.partition());
+		Long offset = offsetService.getOffset(topic,partition.partition());
 		return offset;
 	}
 

@@ -21,8 +21,10 @@ public class ReadTimeOutHandler extends ChannelInboundHandlerAdapter {
 			IdleStateEvent e = (IdleStateEvent) evt;
 			if (e.state() == IdleState.READER_IDLE) {
 				Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-				String gatewayActorKey = attr.get();
-				logger.info(gatewayActorKey + " is read timeout,close channel");
+				String deviceId = attr.get();
+				Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
+				timeoutAttr.set(true);
+				logger.info(deviceId + " is read timeout,close channel");
 				ctx.close();
 			}
 		}

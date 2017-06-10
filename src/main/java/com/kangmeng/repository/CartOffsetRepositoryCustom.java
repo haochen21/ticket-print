@@ -2,5 +2,5 @@ package com.kangmeng.repository;
 
 public interface CartOffsetRepositoryCustom {
 
-	Long getOffset(Integer partition);
+	Long getOffset(String topic,Integer partition);
 }

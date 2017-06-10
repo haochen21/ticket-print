@@ -16,13 +16,12 @@ public class OffsetServiceImpl implements OffsetService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void saveOffset(Long cartId, Integer partition, Long offset) {
+	public void saveOffset(Long cartId, String topic,Integer partition, Long offset) {
 		CartOffset cartOffset = cartOffsetRepository.findOne(cartId);
 		if (cartOffset == null) {
 			cartOffset = new CartOffset();
 			cartOffset.setId(cartId);
-		}
-		if (cartOffset != null && cartOffset.getPartition() == null) {
+			cartOffset.setTopic(topic);
 			cartOffset.setPartition(partition);
 			cartOffset.setOffset(offset);
 		}
@@ -30,8 +29,8 @@ public class OffsetServiceImpl implements OffsetService {
 	}
 
 	@Override
-	public Long getOffset(Integer partition) {
-		return cartOffsetRepository.getOffset(partition);
+	public Long getOffset(String topic,Integer partition) {
+		return cartOffsetRepository.getOffset(topic,partition);
 	}
 
 	@Override

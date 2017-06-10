@@ -46,6 +46,9 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 				logger.info("device {} first login",deviceId);
 				attr.setIfAbsent(deviceId);
 
+				Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
+				timeoutAttr.set(false);
+
 				ChannelCache.INSTANCE.addChannel(deviceId,ctx);
 
 				cartMessageService.createMsgListener(deviceId);
@@ -105,8 +108,10 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
 		String deviceIdKey = attr.get();
 		if (deviceIdKey != null) {
 			logger.info("device {} link is offline",deviceIdKey);
-			ChannelCache.INSTANCE.removeChannel(deviceIdKey);
-			cartMessageService.removeMsgListener(deviceIdKey);
+			boolean isRemove = ChannelCache.INSTANCE.removeChannel(deviceIdKey);
+			if(isRemove){
+				cartMessageService.removeMsgListener(deviceIdKey);
+			}
 		}
 	}
 }
