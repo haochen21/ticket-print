@@ -35,7 +35,7 @@ public class DeviceMsgListener extends Thread {
 
 	private KafkaConsumer<String, String> consumer;
 
-	private String topic;
+	private String[] topics = new String[2];
 
 	private static final String DIVIDING_LINE;
 
@@ -60,14 +60,15 @@ public class DeviceMsgListener extends Thread {
 		this.properties = properties;
 		this.deviceId = deviceId;
 		this.offsetService = offsetService;
-		this.topic = "print-"+deviceId;
+		this.topics[0] = "print-"+deviceId;
+		this.topics[1] = "manualprint-"+deviceId;
 		createConsumer();
 	}
 
 	private void createConsumer() {
 		properties.put(ConsumerConfig.GROUP_ID_CONFIG, deviceId);
 		consumer = new KafkaConsumer<>(properties);
-		consumer.subscribe(Arrays.asList(topic));
+		consumer.subscribe(Arrays.asList(topics));
 	}
 
 	@Override
@@ -76,11 +77,13 @@ public class DeviceMsgListener extends Thread {
 			consumer.poll(0);
 			List<TopicPartition> partitions = new ArrayList<>();
 			for (TopicPartition partition : consumer.assignment()) {
-				Long offset = getOffsetFromDB(partition);
-				if(offset != null){
-					consumer.seek(partition, offset+1);
-				}else {
-					partitions.add(partition);
+				if(partition.topic().startsWith("print-")){
+					Long offset = getOffsetFromDB(partition);
+					if(offset != null){
+						consumer.seek(partition, offset+1);
+					}else {
+						partitions.add(partition);
+					}
 				}
 			}
 			if(partitions.size() >0){
@@ -90,11 +93,14 @@ public class DeviceMsgListener extends Thread {
 				ConsumerRecords<String, String> records = consumer.poll(100);
 				for (ConsumerRecord<String, String> record : records) {
 					Integer partition = Integer.parseInt("" + record.partition());
+					String topicName = record.topic();
 					Long offset = Long.parseLong("" + record.offset());
 					Cart cart = convertJson(record.value());
-					saveOffset(cart.getId(), partition,offset);
+					if(topicName.startsWith("print-")){
+						saveOffset(cart.getId(), partition,offset);
+					}
 					consumerValue(cart);
-					logger.info("get from kfaka,cart id is {}",cart.getId());
+					logger.info("get from kfaka,topic is: {}, offset is {}, cart id is {}",topicName,offset,cart.getId());
 				}
 			}
 		} catch (WakeupException e) {
@@ -124,11 +130,11 @@ public class DeviceMsgListener extends Thread {
 	}
 
 	private void saveOffset(Long cartId, Integer partition, Long offset) {
-		this.offsetService.saveOffset(cartId, topic, partition, offset);
+		this.offsetService.saveOffset(cartId, topics[0], partition, offset);
 	}
 
 	private Long getOffsetFromDB(TopicPartition partition) {
-		Long offset = offsetService.getOffset(topic,partition.partition());
+		Long offset = offsetService.getOffset(topics[0],partition.partition());
 		return offset;
 	}
 
