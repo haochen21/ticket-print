@@ -9,7 +9,8 @@ public class CartOffsetRepositoryImpl implements CartOffsetRepositoryCustom {
 	@PersistenceContext
 	private EntityManager em;
 
-	@Override public Long getOffset(String topic,Integer partition) {
+	@Override
+	public Long getOffset(String topic,Integer partition) {
 		String sql = "SELECT MAX(c.offset) FROM CartOffset c where c.topic = :topic and c.partition = :partition AND c.printed = true";
 		Query query = em.createQuery(sql);
 		query.setParameter("topic",topic);

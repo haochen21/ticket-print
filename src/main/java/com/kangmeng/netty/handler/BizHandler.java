@@ -17,101 +17,103 @@ import org.springframework.util.Assert;
 
 public class BizHandler extends ChannelInboundHandlerAdapter {
 
-	private CartMessageService cartMessageService;
+    private CartMessageService cartMessageService;
 
-	private OffsetService offsetService;
+    private OffsetService offsetService;
 
-	private static final String HEARTBEAT = "AS02#";
+    private static final String HEARTBEAT = "AS02#";
 
-	private final static Logger logger = LoggerFactory.getLogger(BizHandler.class);
+    private final static Logger logger = LoggerFactory.getLogger(BizHandler.class);
 
-	public BizHandler(CartMessageService cartMessageService,OffsetService offsetService){
-		this.cartMessageService = cartMessageService;
-		this.offsetService = offsetService;
-	}
+    public BizHandler(CartMessageService cartMessageService, OffsetService offsetService) {
+        this.cartMessageService = cartMessageService;
+        this.offsetService = offsetService;
+    }
 
-	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg)
-			throws Exception {
-		String body = (String) msg;
-		logger.info("receive msg : ["
-				+ body + "]");
-		if(body.endsWith("AS01")){
-			Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-			String deviceKey = attr.get();
-			// 设备第一次上线
-			if (deviceKey == null) {
-				String[] splits = body.split("\\*");
-				String deviceId = splits[1];
-				logger.info("device {} first login",deviceId);
-				attr.setIfAbsent(deviceId);
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg)
+            throws Exception {
+        String body = (String) msg;
+        logger.info("receive msg : ["
+                + body + "]");
+        if (body.endsWith("AS01")) {
+            Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
+            String deviceKey = attr.get();
+            // 设备第一次上线
+            if (deviceKey == null) {
+                String[] splits = body.split("\\*");
+                String deviceId = splits[1];
+                logger.info("device {} first login", deviceId);
+                attr.setIfAbsent(deviceId);
 
-				Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
-				timeoutAttr.set(false);
+                Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
+                timeoutAttr.set(false);
 
-				ChannelCache.INSTANCE.addChannel(deviceId,ctx);
+                ChannelCache.INSTANCE.addChannel(deviceId, ctx);
 
-				cartMessageService.createMsgListener(deviceId);
+                cartMessageService.createMsgListener(deviceId);
 
-				//心跳
-				String command = HEARTBEAT+"AS48*1#";
-				byte[] bytes = command.getBytes("GBK");
-				ByteBuf byteBuf = Unpooled.buffer();
-				byteBuf.writeBytes(bytes);
-				ctx.write(byteBuf);
-			}
-			//心跳
-			byte[] bytes = HEARTBEAT.getBytes("GBK");
-			ByteBuf byteBuf = Unpooled.buffer();
-			byteBuf.writeBytes(bytes);
-			ctx.write(byteBuf);
+                //心跳
+                String command = HEARTBEAT + "AS48*1#";
+                byte[] bytes = command.getBytes("GBK");
+                ByteBuf byteBuf = Unpooled.buffer();
+                byteBuf.writeBytes(bytes);
+                ctx.write(byteBuf);
+            }
+            //心跳
+            byte[] bytes = HEARTBEAT.getBytes("GBK");
+            ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(bytes);
+            ctx.write(byteBuf);
 
-		}else if(body.endsWith("AS04")){
-			// 打印机已接收订单
-			String[] splits = body.split("\\*");
-			String cardId = splits[2];
-			String printCommand = "AS38*"+cardId+"*0#";
-			logger.info("response receive,command is: {}", printCommand);
-			byte[] bytes = printCommand.getBytes("GBK");
-			ByteBuf byteBuf = Unpooled.buffer();
-			byteBuf.writeBytes(bytes);
-			ctx.write(byteBuf);
-		}else if(body.endsWith("AS05")){
-			// 打印机已打印订单
-			String[] splits = body.split("\\*");
-			String orderId = splits[2];
+        } else if (body.endsWith("AS04")) {
+            // 打印机已接收订单
+            String[] splits = body.split("\\*");
+            String cardId = splits[2];
+            String printCommand = "AS38*" + cardId + "*0#";
+            logger.info("response receive,command is: {}", printCommand);
+            byte[] bytes = printCommand.getBytes("GBK");
+            ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(bytes);
+            ctx.write(byteBuf);
+        } else if (body.endsWith("AS05")) {
+            // 打印机已打印订单
+            String[] splits = body.split("\\*");
+            String deviceId = splits[1];
+            String orderId = splits[2];
 
-			String[] cartIds = orderId.split(":");
-			Long cartId = Long.parseLong(cartIds[1]);
-			offsetService.savePrinted(cartId);
+            String[] cartIds = orderId.split(":");
+            Long cartId = Long.parseLong(cartIds[1]);
 
-			String printCommand = "AS39*"+orderId+"#";
-			logger.info("response print,command is: {}", printCommand);
+            offsetService.savePrinted(cartId, "print-" + deviceId);
 
-			byte[] bytes = printCommand.getBytes("GBK");
-			ByteBuf byteBuf = Unpooled.buffer();
-			byteBuf.writeBytes(bytes);
-			ctx.write(byteBuf);
-		}
-	}
+            String printCommand = "AS39*" + orderId + "#";
+            logger.info("response print,command is: {}", printCommand);
 
-	@Override
-	public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-		ctx.flush();
-	}
+            byte[] bytes = printCommand.getBytes("GBK");
+            ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(bytes);
+            ctx.write(byteBuf);
+        }
+    }
 
-	@Override
-	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-		Assert.notNull(ctx, "ChannelHandlerContext must not be null");
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        ctx.flush();
+    }
 
-		Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-		String deviceIdKey = attr.get();
-		if (deviceIdKey != null) {
-			logger.info("device {} link is offline",deviceIdKey);
-			boolean isRemove = ChannelCache.INSTANCE.removeChannel(deviceIdKey);
-			if(isRemove){
-				cartMessageService.removeMsgListener(deviceIdKey);
-			}
-		}
-	}
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        Assert.notNull(ctx, "ChannelHandlerContext must not be null");
+
+        Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
+        String deviceIdKey = attr.get();
+        if (deviceIdKey != null) {
+            logger.info("device {} link is offline", deviceIdKey);
+            boolean isRemove = ChannelCache.INSTANCE.removeChannel(deviceIdKey);
+            if (isRemove) {
+                cartMessageService.removeMsgListener(deviceIdKey);
+            }
+        }
+    }
 }

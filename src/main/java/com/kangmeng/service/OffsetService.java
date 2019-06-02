@@ -6,5 +6,5 @@ public interface OffsetService {
 
 	Long getOffset(String topic,Integer partition);
 
-	void savePrinted(Long cartId);
+	void savePrinted(Long cartId,String topic);
 }

@@ -96,11 +96,11 @@ public class DeviceMsgListener extends Thread {
 					String topicName = record.topic();
 					Long offset = Long.parseLong("" + record.offset());
 					Cart cart = convertJson(record.value());
+					logger.info("get from kfaka,topic is: {}, offset is {}, cart id is {}",topicName,offset,cart.getId());
 					if(topicName.startsWith("print-")){
 						saveOffset(cart.getId(), partition,offset);
 					}
 					consumerValue(cart);
-					logger.info("get from kfaka,topic is: {}, offset is {}, cart id is {}",topicName,offset,cart.getId());
 				}
 			}
 		} catch (WakeupException e) {
@@ -152,6 +152,8 @@ public class DeviceMsgListener extends Thread {
 			// 数据分隔符
 			sb.append("*");
 			sb.append(getPrintOrderString(cart));
+			sb.append("*");
+			sb.append("<horn-50,1,1>");
 			// 数据结束标示符
 			sb.append("#");
 

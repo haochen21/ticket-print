@@ -1,21 +1,19 @@
 package com.kangmeng.model.kafka;
 
-import com.kangmeng.model.Constants;
-
 import java.io.Serializable;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "CARTOFFSET")
 public class CartOffset implements Serializable{
 
 	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	protected Long id;
+
+	@Column(name = "CARTID")
+	protected Long cartId;
 
 	@Column(name = "TOPIC")
 	protected String topic;
@@ -39,6 +37,14 @@ public class CartOffset implements Serializable{
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Long getCartId() {
+		return cartId;
+	}
+
+	public void setCartId(Long cartId) {
+		this.cartId = cartId;
 	}
 
 	public String getTopic() {
