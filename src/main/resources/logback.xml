@@ -7,7 +7,7 @@
 		<append>true</append>
 		<File>${LOG_HOME}/print.log</File>
 		<layout class="ch.qos.logback.classic.PatternLayout">
-			<pattern>%d %5p [ %F:%L ] - %m%n</pattern>
+			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
 		</layout>
 		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
 			<FileNamePattern>${LOG_HOME}/print%i.log</FileNamePattern>

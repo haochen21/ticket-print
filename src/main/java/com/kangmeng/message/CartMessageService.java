@@ -30,10 +30,10 @@ public class CartMessageService {
 	public void createMsgListener(String deviceId) {
 		if (!deviceMsgThreadMap.containsKey(deviceId)) {
 			DeviceMsgListener listener = new DeviceMsgListener(consumerProperties, deviceId, offsetService);
+			listener.setName("deviceId");
 			deviceMsgThreadMap.put(deviceId, listener);
 			logger.info("add message listener,deviceId is {}.", deviceId);
-			Thread thread = new Thread(listener);
-			thread.start();
+			listener.start();
 		}
 	}
 

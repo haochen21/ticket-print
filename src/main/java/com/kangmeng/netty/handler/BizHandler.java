@@ -1,10 +1,8 @@
 package com.kangmeng.netty.handler;
 
-import com.kangmeng.GlobalContext;
 import com.kangmeng.message.CartMessageService;
 import com.kangmeng.netty.AttributeMapConstant;
 import com.kangmeng.netty.ChannelCache;
-import com.kangmeng.repository.CartOffsetRepository;
 import com.kangmeng.service.OffsetService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -110,10 +108,9 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
         String deviceIdKey = attr.get();
         if (deviceIdKey != null) {
             logger.info("device {} link is offline", deviceIdKey);
-            boolean isRemove = ChannelCache.INSTANCE.removeChannel(deviceIdKey);
-            if (isRemove) {
-                cartMessageService.removeMsgListener(deviceIdKey);
-            }
+            ChannelCache.INSTANCE.removeChannel(deviceIdKey);
+            cartMessageService.removeMsgListener(deviceIdKey);
+            ctx.close();
         }
     }
 }

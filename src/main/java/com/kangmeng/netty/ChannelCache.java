@@ -31,14 +31,8 @@ public enum ChannelCache {
             Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
             boolean timeout = timeoutAttr.get();
             logger.info("{} timeout status is : {}",deviceId,timeout);
-            if (timeout) {
-                channelMap.remove(deviceId);
-                return true;
-            }else {
-                return false;
-            }
-        }else {
-            return false;
+            channelMap.remove(deviceId);
         }
+        return true;
     }
 }

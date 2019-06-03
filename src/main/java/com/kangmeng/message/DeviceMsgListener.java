@@ -47,6 +47,8 @@ public class DeviceMsgListener extends Thread {
 
 	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("###,##0.00");
 
+	private static final String TEST_TEXT = "&!*198080*01行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*02行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCC 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*23行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*24行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*25行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*26行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*27行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*28行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*29行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*30行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*<BMP11>*<big>31行 名称 1234567890 1234567890 1234567890 1234567890 1234567890   数量 单价 *AAAAAAAAAjkdsjiojiojkljdsoiji*<horn-20,2,3>#";
+
 	static {
 		StringBuffer sb = new StringBuffer("");
 		for (int i = 0; i < MAX_WIDTH; i++) {
@@ -145,8 +147,11 @@ public class DeviceMsgListener extends Thread {
 			sb.append("&!");
 			// 数据分隔符
 			sb.append("*");
-			// 接受方式
 			sb.append("1");
+			sb.append(cart.getId());
+			// 接受方式
+			sb.append("*");
+			sb.append("01");
 			// 订单号
 			sb.append("订单编号:").append(cart.getId());
 			// 数据分隔符
@@ -157,8 +162,11 @@ public class DeviceMsgListener extends Thread {
 			// 数据结束标示符
 			sb.append("#");
 
+			//logger.info(sb.toString());
+
 			if (ChannelCache.INSTANCE.getChannel(deviceId) != null) {
 				byte[] bytes = sb.toString().getBytes("GBK");
+
 				ByteBuf byteBuf = Unpooled.buffer();
 				byteBuf.writeBytes(bytes);
 				ChannelCache.INSTANCE.getChannel(deviceId).writeAndFlush(byteBuf);
