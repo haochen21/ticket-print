@@ -13,20 +13,18 @@ import io.netty.util.Attribute;
 
 public class ReadTimeOutHandler extends ChannelInboundHandlerAdapter {
 
-	private final static Logger logger = LoggerFactory.getLogger(ReadTimeOutHandler.class);
+    private final static Logger logger = LoggerFactory.getLogger(ReadTimeOutHandler.class);
 
-	@Override
-	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-		if (evt instanceof IdleStateEvent) {
-			IdleStateEvent e = (IdleStateEvent) evt;
-			if (e.state() == IdleState.READER_IDLE) {
-				Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-				String deviceId = attr.get();
-				Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
-				timeoutAttr.set(true);
-				logger.info(deviceId + " is read timeout,close channel");
-				ctx.close();
-			}
-		}
-	}
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent e = (IdleStateEvent) evt;
+            if (e.state() == IdleState.READER_IDLE) {
+                Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
+                String deviceId = attr.get();
+                logger.info("add message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+                ctx.close();
+            }
+        }
+    }
 }

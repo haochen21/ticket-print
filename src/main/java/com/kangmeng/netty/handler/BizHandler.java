@@ -32,32 +32,21 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg)
             throws Exception {
         String body = (String) msg;
-        logger.info("receive msg : ["
-                + body + "]");
+        logger.info("receive msg [{}],channel id is: {}", body,ctx.channel().id().asShortText());
         if (body.endsWith("AS01")) {
-            Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
-            String deviceKey = attr.get();
-            // 设备第一次上线
-            if (deviceKey == null) {
-                String[] splits = body.split("\\*");
-                String deviceId = splits[1];
-                logger.info("device {} first login", deviceId);
+            String[] splits = body.split("\\*");
+            String deviceId = splits[1];
+            if (!ChannelCache.INSTANCE.getChannel(deviceId).contains(ctx)) {
+                // 设备第一次上线
+                logger.info("online,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+                Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
                 attr.setIfAbsent(deviceId);
-
-                Attribute<Boolean> timeoutAttr = ctx.channel().attr(AttributeMapConstant.TIMEOUT_CHANNEL_KEY);
-                timeoutAttr.set(false);
 
                 ChannelCache.INSTANCE.addChannel(deviceId, ctx);
 
-                cartMessageService.createMsgListener(deviceId);
-
-                //心跳
-                String command = HEARTBEAT + "AS48*1#";
-                byte[] bytes = command.getBytes("GBK");
-                ByteBuf byteBuf = Unpooled.buffer();
-                byteBuf.writeBytes(bytes);
-                ctx.write(byteBuf);
+                cartMessageService.createMsgListener(deviceId, ctx);
             }
+
             //心跳
             byte[] bytes = HEARTBEAT.getBytes("GBK");
             ByteBuf byteBuf = Unpooled.buffer();
@@ -69,7 +58,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
             String[] splits = body.split("\\*");
             String cardId = splits[2];
             String printCommand = "AS38*" + cardId + "*0#";
-            logger.info("response receive,command is: {}", printCommand);
+            logger.info("command receive,command is: {}", printCommand);
             byte[] bytes = printCommand.getBytes("GBK");
             ByteBuf byteBuf = Unpooled.buffer();
             byteBuf.writeBytes(bytes);
@@ -86,7 +75,7 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
             offsetService.savePrinted(cartId, "print-" + deviceId);
 
             String printCommand = "AS39*" + orderId + "#";
-            logger.info("response print,command is: {}", printCommand);
+            logger.info("command print,command is: {}", printCommand);
 
             byte[] bytes = printCommand.getBytes("GBK");
             ByteBuf byteBuf = Unpooled.buffer();
@@ -96,21 +85,21 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.flush();
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         Assert.notNull(ctx, "ChannelHandlerContext must not be null");
 
         Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
         String deviceIdKey = attr.get();
         if (deviceIdKey != null) {
-            logger.info("device {} link is offline", deviceIdKey);
-            ChannelCache.INSTANCE.removeChannel(deviceIdKey);
-            cartMessageService.removeMsgListener(deviceIdKey);
-            ctx.close();
+            logger.info("channel inactive,deviceId is {},channel id is: {}", deviceIdKey, ctx.channel().id().asShortText());
+            ChannelCache.INSTANCE.removeChannel(deviceIdKey, ctx);
+            cartMessageService.removeMsgListener(deviceIdKey, ctx);
         }
+        ctx.close();
     }
 }

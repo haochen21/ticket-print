@@ -1,6 +1,7 @@
 package com.kangmeng.message;
 
 import com.kangmeng.service.OffsetService;
+import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,36 +14,38 @@ import java.util.Properties;
 @Component
 public class CartMessageService {
 
-	@Autowired
-	private Properties consumerProperties;
+    @Autowired
+    private Properties consumerProperties;
 
-	@Autowired
-	private OffsetService offsetService;
+    @Autowired
+    private OffsetService offsetService;
 
-	private Map<String, DeviceMsgListener> deviceMsgThreadMap = new HashMap<>();
+    // key: deviceId+"~"+channel.id
+    private Map<String, DeviceMsgListener> deviceMsgThreadMap = new HashMap<>();
 
-	private final static Logger logger = LoggerFactory.getLogger(CartMessageService.class);
+    private final static Logger logger = LoggerFactory.getLogger(CartMessageService.class);
 
-	public CartMessageService() {
+    public CartMessageService() {
 
-	}
+    }
 
-	public void createMsgListener(String deviceId) {
-		if (!deviceMsgThreadMap.containsKey(deviceId)) {
-			DeviceMsgListener listener = new DeviceMsgListener(consumerProperties, deviceId, offsetService);
-			listener.setName("deviceId");
-			deviceMsgThreadMap.put(deviceId, listener);
-			logger.info("add message listener,deviceId is {}.", deviceId);
-			listener.start();
-		}
-	}
+    public void createMsgListener(String deviceId, ChannelHandlerContext ctx) {
+        String key = deviceId + "~" + ctx.channel().id().asShortText();
+        deviceMsgThreadMap.computeIfAbsent(key, k -> {
+            DeviceMsgListener listener = new DeviceMsgListener(consumerProperties, deviceId, offsetService);
+            listener.setName(key);
+            logger.info("add message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+            return listener;
+        }).start();
+    }
 
-	public void removeMsgListener(String deviceId) {
-		if (deviceMsgThreadMap.containsKey(deviceId)) {
-			deviceMsgThreadMap.get(deviceId).shutdown();
-			deviceMsgThreadMap.remove(deviceId);
-			logger.info("remove message listener,deviceId is {}.", deviceId);
-		}
-	}
+    public void removeMsgListener(String deviceId, ChannelHandlerContext ctx) {
+        String key = deviceId + "~" + ctx.channel().id().asShortText();
+        DeviceMsgListener listener = deviceMsgThreadMap.remove(key);
+        if (listener != null) {
+            deviceMsgThreadMap.get(deviceId).shutdown();
+        }
+        logger.info("remove message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+    }
 
 }
