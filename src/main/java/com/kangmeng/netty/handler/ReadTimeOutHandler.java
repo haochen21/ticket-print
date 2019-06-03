@@ -22,7 +22,7 @@ public class ReadTimeOutHandler extends ChannelInboundHandlerAdapter {
             if (e.state() == IdleState.READER_IDLE) {
                 Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
                 String deviceId = attr.get();
-                logger.info("add message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+                logger.info("ReadTimeOut,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
                 ctx.close();
             }
         }
