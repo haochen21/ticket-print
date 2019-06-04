@@ -29,8 +29,8 @@ public class PrintInfoResponse extends ChannelOutboundHandlerAdapter {
 				if (!f.isSuccess()) {
 					Attribute<String> attr = ctx.channel().attr(AttributeMapConstant.NETTY_CHANNEL_KEY);
 					String gatewayActorKey = attr.get();
-					logger.info(gatewayActorKey.toString(), f.cause().getMessage());
-					f.channel().close();
+					logger.error(gatewayActorKey, f.cause());
+					//f.channel().close();
 				}
 			}
 		});

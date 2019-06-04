@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import java.net.InetSocketAddress;
+
 public class BizHandler extends ChannelInboundHandlerAdapter {
 
     private CartMessageService cartMessageService;
@@ -32,7 +34,10 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg)
             throws Exception {
         String body = (String) msg;
-        logger.info("receive msg [{}],channel id is: {}", body,ctx.channel().id().asShortText());
+        InetSocketAddress insocket = (InetSocketAddress) ctx.channel().remoteAddress();
+        String clientIP = insocket.getAddress().getHostAddress();
+
+        logger.info("receive msg [{}],clientIP is: {},channel id is: {}", body,clientIP,ctx.channel().id().asShortText());
         if (body.endsWith("AS01")) {
             String[] splits = body.split("\\*");
             String deviceId = splits[1];
