@@ -4,7 +4,6 @@ import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
 import com.kangmeng.message.CartMessageService;
-import com.kangmeng.service.OffsetService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelInitializer;
@@ -16,39 +15,36 @@ import io.netty.util.concurrent.EventExecutorGroup;
 
 public class CustomChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-	private EventExecutorGroup eventExecutorGroup;
+    private EventExecutorGroup eventExecutorGroup;
 
-	private CartMessageService cartMessageService;
+    private CartMessageService cartMessageService;
 
-	private OffsetService offsetService;
+    private int readTimeOut;
 
-	private int readTimeOut;
+    private ByteBuf delimiter = Unpooled.copiedBuffer("#"
+            .getBytes());
 
-	private ByteBuf delimiter = Unpooled.copiedBuffer("#"
-			.getBytes());
+    public CustomChannelInitializer(EventExecutorGroup eventExecutorGroup, CartMessageService cartMessageService, int readTimeOut) {
+        super();
+        this.eventExecutorGroup = eventExecutorGroup;
+        this.cartMessageService = cartMessageService;
+        this.readTimeOut = readTimeOut;
+    }
 
-	public CustomChannelInitializer(EventExecutorGroup eventExecutorGroup, CartMessageService cartMessageService,OffsetService offsetService,int readTimeOut) {
-		super();
-		this.eventExecutorGroup = eventExecutorGroup;
-		this.cartMessageService = cartMessageService;
-		this.offsetService = offsetService;
-		this.readTimeOut = readTimeOut;
-	}
+    @Override
+    protected void initChannel(SocketChannel ch) throws Exception {
 
-	@Override
-	protected void initChannel(SocketChannel ch) throws Exception {
+        // 都属于ChannelOutboundHandler，逆序执行
+        ch.pipeline().addLast(eventExecutorGroup, new PrintInfoResponse());
 
-		// 都属于ChannelOutboundHandler，逆序执行
-		ch.pipeline().addLast(eventExecutorGroup, new PrintInfoResponse());
+        // 都属于ChannelIntboundHandler，按照顺序执行
+        ch.pipeline().addLast(new IdleStateHandler(readTimeOut, 0, 0, TimeUnit.SECONDS));
+        ch.pipeline().addLast(new ReadTimeOutHandler());
+        ch.pipeline().addLast(new DelimiterBasedFrameDecoder(512,
+                delimiter));
+        ch.pipeline().addLast(new StringDecoder(Charset.forName("GBK")));
+        ch.pipeline().addLast(eventExecutorGroup, new BizHandler(cartMessageService));
 
-		// 都属于ChannelIntboundHandler，按照顺序执行
-		ch.pipeline().addLast(new IdleStateHandler(readTimeOut, 0, 0, TimeUnit.SECONDS));
-		ch.pipeline().addLast(new ReadTimeOutHandler());
-		ch.pipeline().addLast(new DelimiterBasedFrameDecoder(512,
-				delimiter));
-		ch.pipeline().addLast(new StringDecoder(Charset.forName("GBK")));
-		ch.pipeline().addLast(eventExecutorGroup, new BizHandler(cartMessageService,offsetService));
-
-	}
+    }
 
 }

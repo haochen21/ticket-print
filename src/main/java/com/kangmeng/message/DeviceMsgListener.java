@@ -4,24 +4,26 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangmeng.model.order.Cart;
 import com.kangmeng.model.order.CartItem;
-import com.kangmeng.netty.ChannelCache;
-import com.kangmeng.service.OffsetService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DeviceMsgListener extends Thread {
+
+    private ChannelHandlerContext ctx;
 
     private final static Logger logger = LoggerFactory.getLogger(DeviceMsgListener.class);
 
@@ -31,11 +33,13 @@ public class DeviceMsgListener extends Thread {
 
     private String deviceId;
 
-    private OffsetService offsetService;
+    private String topicName;
 
     private KafkaConsumer<String, String> consumer;
 
-    private String[] topics = new String[2];
+    private final Map<Integer, Long> partitionOffsets = new ConcurrentHashMap<>();
+
+    private CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     private static final String DIVIDING_LINE;
 
@@ -47,75 +51,95 @@ public class DeviceMsgListener extends Thread {
 
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("###,##0.00");
 
-    private static final String TEST_TEXT = "&!*198080*01行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*02行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCC 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*23行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*24行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*25行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*26行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*27行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*28行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*29行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*30行 名称    数量 单价 *AAAAAAAAAABBBBBBBBBBCCCCCCCCCCCDDDDDDDEEEEEEEEFGGGGGGGGGGHKKJKJICKJDIL顺国在楞在在顺要砂楞右右要右边困轲*<BMP11>*<big>31行 名称 1234567890 1234567890 1234567890 1234567890 1234567890   数量 单价 *AAAAAAAAAjkdsjiojiojkljdsoiji*<horn-20,2,3>#";
-
     static {
-        StringBuffer sb = new StringBuffer("");
+        StringBuffer sb = new StringBuffer();
         for (int i = 0; i < MAX_WIDTH; i++) {
             sb.append("-");
         }
         DIVIDING_LINE = sb.toString();
     }
 
-    public DeviceMsgListener(Properties properties, String deviceId, OffsetService offsetService) {
+    public DeviceMsgListener(ChannelHandlerContext ctx, Properties properties, String deviceId) {
         super(deviceId);
+
+        this.ctx = ctx;
         this.properties = properties;
         this.deviceId = deviceId;
-        this.offsetService = offsetService;
-        this.topics[0] = "print-" + deviceId;
-        this.topics[1] = "manualprint-" + deviceId;
+        this.topicName = "print-" + deviceId;
         createConsumer();
+    }
+
+    public ChannelHandlerContext getCtx() {
+        return ctx;
     }
 
     private void createConsumer() {
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, deviceId);
         consumer = new KafkaConsumer<>(properties);
-        consumer.subscribe(Arrays.asList(topics));
+        consumer.subscribe(Arrays.asList(topicName));
     }
 
     @Override
     public void run() {
-        try {
-            consumer.poll(0);
-            List<TopicPartition> partitions = new ArrayList<>();
-            for (TopicPartition partition : consumer.assignment()) {
-                if (partition.topic().startsWith("print-")) {
-                    Long offset = getOffsetFromDB(partition);
-                    if (offset != null) {
-                        consumer.seek(partition, offset + 1);
-                    } else {
-                        partitions.add(partition);
-                    }
-                }
-            }
-            if (partitions.size() > 0) {
-                consumer.seekToEnd(partitions);
-            }
-            while (!closed.get()) {
-                ConsumerRecords<String, String> records = consumer.poll(100);
+        while (!closed.get()) {
+            try {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
                 for (ConsumerRecord<String, String> record : records) {
                     Integer partition = Integer.parseInt("" + record.partition());
                     String topicName = record.topic();
                     Long offset = Long.parseLong("" + record.offset());
                     Cart cart = convertJson(record.value());
-                    logger.info("get from kfaka,topic is: {}, offset is {}, cart id is {}", topicName, offset, cart.getId());
-                    if (topicName.startsWith("print-")) {
-                        saveOffset(cart.getId(), partition, offset);
-                    }
-                    consumerValue(cart);
+                    logger.info("topic is: {}, partition is: {},offset is {}, cart id is {}",
+                            topicName, partition, offset, cart.getId());
+                    consumerValue(cart, partition, offset);
                 }
+                commitOffsets();
+            } catch (Exception ex) {
+                logger.error("Error", ex);
             }
-        } catch (WakeupException e) {
-            if (!closed.get())
-                throw e;
-        } finally {
-            consumer.close();
         }
+        commitOffsets();
+        consumer.close();
+        shutdownLatch.countDown();
+        logger.info("device : {}, consumer exited", deviceId);
     }
 
     public void shutdown() {
-        closed.set(true);
-        consumer.wakeup();
+        try {
+            closed.set(true);
+            shutdownLatch.await();
+        } catch (InterruptedException ex) {
+            logger.error("Error", ex);
+        }
+    }
+
+    public void addPrintedOffset(String offsetInfo) {
+        String[] offsetInfoArr = offsetInfo.split(",");
+        int partition = Integer.parseInt(offsetInfoArr[0]);
+        long offset = Long.parseLong(offsetInfoArr[1]);
+        if (!partitionOffsets.containsKey(partition)) {
+            partitionOffsets.put(partition, offset);
+        } else {
+            long oldOffset = partitionOffsets.get(partition);
+            if (partitionOffsets.get(partition) < offset) {
+                partitionOffsets.put(partition, offset);
+                logger.info("partition:{}, old offset:{},new offset: {}", partition, oldOffset, offset);
+            }
+        }
+    }
+
+    private void commitOffsets() {
+        if (!partitionOffsets.isEmpty()) {
+            Map<TopicPartition, OffsetAndMetadata> partitionToMetadataMap = new HashMap<>();
+            for (Map.Entry<Integer, Long> entry : partitionOffsets.entrySet()) {
+                partitionToMetadataMap.put(
+                        new TopicPartition(topicName, entry.getKey()),
+                        new OffsetAndMetadata(entry.getValue() + 1, "no metadata"));
+            }
+            consumer.commitSync(partitionToMetadataMap);
+            partitionOffsets.clear();
+            logger.info("topic: {}, committing the offsets : {}", topicName, partitionToMetadataMap);
+        }
     }
 
     private Cart convertJson(String cartJson) {
@@ -131,22 +155,14 @@ public class DeviceMsgListener extends Thread {
 
     }
 
-    private void saveOffset(Long cartId, Integer partition, Long offset) {
-        this.offsetService.saveOffset(cartId, topics[0], partition, offset);
-    }
-
-    private Long getOffsetFromDB(TopicPartition partition) {
-        Long offset = offsetService.getOffset(topics[0], partition.partition());
-        return offset;
-    }
-
-    private void consumerValue(Cart cart) {
+    private void consumerValue(Cart cart, int partition, long offset) {
         try {
             StringBuilder sb = new StringBuilder();
             // 数据起始标示符
             sb.append("&!");
             // 数据分隔符
             sb.append("*");
+            sb.append(partition).append(",").append(offset);
             sb.append("1");
             sb.append(cart.getId());
             // 接受方式
@@ -164,20 +180,13 @@ public class DeviceMsgListener extends Thread {
 
             //logger.info(sb.toString());
 
-            if (ChannelCache.INSTANCE.getChannel(deviceId) != null) {
-                byte[] bytes = sb.toString().getBytes("GBK");
-
-                ByteBuf byteBuf = Unpooled.buffer();
-                byteBuf.writeBytes(bytes);
-                Iterator<ChannelHandlerContext> ite = ChannelCache.INSTANCE.getChannel(deviceId).iterator();
-                while(ite.hasNext()){
-                    ite.next().writeAndFlush(byteBuf);
-                }
-            }
+            byte[] bytes = sb.toString().getBytes("GBK");
+            ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(bytes);
+            ctx.writeAndFlush(byteBuf);
         } catch (Exception ex) {
             logger.info("handle cart error", ex);
         }
-
     }
 
     private String getPrintOrderString(Cart cart) {
@@ -333,4 +342,5 @@ public class DeviceMsgListener extends Thread {
                 || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS
                 || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION;
     }
+
 }

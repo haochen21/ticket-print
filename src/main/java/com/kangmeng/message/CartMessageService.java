@@ -1,15 +1,14 @@
 package com.kangmeng.message;
 
-import com.kangmeng.service.OffsetService;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class CartMessageService {
@@ -17,11 +16,8 @@ public class CartMessageService {
     @Autowired
     private Properties consumerProperties;
 
-    @Autowired
-    private OffsetService offsetService;
-
-    // key: deviceId+"~"+channel.id
-    private Map<String, DeviceMsgListener> deviceMsgThreadMap = new HashMap<>();
+    // key: deviceId
+    private Map<String, DeviceMsgListener> deviceChannelMap = new ConcurrentHashMap<>();
 
     private final static Logger logger = LoggerFactory.getLogger(CartMessageService.class);
 
@@ -30,22 +26,41 @@ public class CartMessageService {
     }
 
     public void createMsgListener(String deviceId, ChannelHandlerContext ctx) {
-        String key = deviceId + "~" + ctx.channel().id().asShortText();
-        deviceMsgThreadMap.computeIfAbsent(key, k -> {
-            DeviceMsgListener listener = new DeviceMsgListener(consumerProperties, deviceId, offsetService);
-            listener.setName(key);
-            logger.info("add message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
-            return listener;
-        }).start();
+        if (deviceChannelMap.containsKey(deviceId)) {
+            if (!deviceChannelMap.get(deviceId).getCtx().equals(ctx)) {
+                deviceChannelMap.get(deviceId).shutdown();
+                deviceChannelMap.remove(deviceId);
+                create(deviceId, ctx);
+            }
+        } else {
+            create(deviceId, ctx);
+        }
+
     }
 
     public void removeMsgListener(String deviceId, ChannelHandlerContext ctx) {
-        String key = deviceId + "~" + ctx.channel().id().asShortText();
-        DeviceMsgListener listener = deviceMsgThreadMap.remove(key);
-        if (listener != null) {
-            deviceMsgThreadMap.get(deviceId).shutdown();
+        if (deviceChannelMap.containsKey(deviceId)
+                && deviceChannelMap.get(deviceId).getCtx().equals(ctx)) {
+            deviceChannelMap.get(deviceId).shutdown();
+            deviceChannelMap.remove(deviceId);
+            logger.info("remove message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
         }
-        logger.info("remove message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+    }
+
+    public DeviceMsgListener getDeviceMsgListener(String deviceId) {
+        if (deviceChannelMap.containsKey(deviceId)) {
+            return deviceChannelMap.get(deviceId);
+        }
+        return null;
+    }
+
+    private void create(String deviceId, ChannelHandlerContext ctx) {
+        logger.info("online,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+        deviceChannelMap.computeIfAbsent(deviceId, k -> {
+            DeviceMsgListener listener = new DeviceMsgListener(ctx, consumerProperties, deviceId);
+            logger.info("add message listener,deviceId is {},channel id is: {}", deviceId, ctx.channel().id().asShortText());
+            return listener;
+        }).start();
     }
 
 }
