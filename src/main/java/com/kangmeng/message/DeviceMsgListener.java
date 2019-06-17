@@ -114,7 +114,7 @@ public class DeviceMsgListener extends Thread {
     }
 
     public void addPrintedOffset(String offsetInfo) {
-        String[] offsetInfoArr = offsetInfo.split(",");
+        String[] offsetInfoArr = offsetInfo.split("=");
         int partition = Integer.parseInt(offsetInfoArr[0]);
         long offset = Long.parseLong(offsetInfoArr[1]);
         if (!partitionOffsets.containsKey(partition)) {
@@ -162,12 +162,10 @@ public class DeviceMsgListener extends Thread {
             sb.append("&!");
             // 数据分隔符
             sb.append("*");
-            sb.append(partition).append(",").append(offset);
-            sb.append("1");
-            sb.append(cart.getId());
+            sb.append("4");
+            sb.append(partition).append("=").append(offset);
             // 接受方式
             sb.append("*");
-            sb.append("01");
             // 订单号
             sb.append("订单编号:").append(cart.getId());
             // 数据分隔符

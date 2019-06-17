@@ -48,16 +48,6 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
         } else if (body.endsWith("AS04")) {
             // 打印机已接收订单
             String[] splits = body.split("\\*");
-            String offsetInfo = splits[2];
-            String printCommand = "AS38*" + offsetInfo + "*0#";
-            logger.info("command receive,command is: {}", printCommand);
-            byte[] bytes = printCommand.getBytes("GBK");
-            ByteBuf byteBuf = Unpooled.buffer();
-            byteBuf.writeBytes(bytes);
-            ctx.write(byteBuf);
-        } else if (body.endsWith("AS05")) {
-            // 打印机已打印订单
-            String[] splits = body.split("\\*");
             String deviceId = splits[1];
             String offsetInfo = splits[2];
 
@@ -66,8 +56,19 @@ public class BizHandler extends ChannelInboundHandlerAdapter {
                 deviceMsgListener.addPrintedOffset(offsetInfo);
             }
 
+            String printCommand = "AS38*" + offsetInfo + "*0#";
+            //logger.info("command receive,command is: {}", printCommand);
+            byte[] bytes = printCommand.getBytes("GBK");
+            ByteBuf byteBuf = Unpooled.buffer();
+            byteBuf.writeBytes(bytes);
+            ctx.write(byteBuf);
+        } else if (body.endsWith("AS05")) {
+            // 打印机已打印订单
+            String[] splits = body.split("\\*");
+            String offsetInfo = splits[2];
+
             String printCommand = "AS39*" + offsetInfo + "#";
-            logger.info("command print,command is: {}", printCommand);
+            //logger.info("command print,command is: {}", printCommand);
 
             byte[] bytes = printCommand.getBytes("GBK");
             ByteBuf byteBuf = Unpooled.buffer();
