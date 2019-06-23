@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangmeng.model.order.Cart;
 import com.kangmeng.model.order.CartItem;
+import com.kangmeng.model.order.SelectProductProperty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -172,7 +173,10 @@ public class DeviceMsgListener extends Thread {
             sb.append("*");
             sb.append(getPrintOrderString(cart));
             sb.append("*");
-            sb.append("<horn-50,1,1>");
+            if (cart.getMerchant().getPrintVoice() == null || cart.getMerchant().getPrintVoice()) {
+                sb.append("<horn-50,1,1>");
+            }
+
             // 数据结束标示符
             sb.append("#");
 
@@ -235,12 +239,15 @@ public class DeviceMsgListener extends Thread {
             String quantity = formatQuantity(item.getQuantity());
             String productTotalPrice = formatTotalPrice(item.getTotalPrice().doubleValue());
             val += formatProduct(price + quantity + productTotalPrice);
+
+            for (SelectProductProperty selectProductProperty : item.getSelectProductProperties()) {
+                val += LINE_BREAK + selectProductProperty.getName() + getBlank(1, " ") + selectProductProperty.getValue();
+            }
         }
 
         if (cart.getRemark() != null) {
             val += LINE_BREAK + DIVIDING_LINE;
             val += LINE_BREAK + "备注: " + cart.getRemark();
-
         }
 
         val += LINE_BREAK + DIVIDING_LINE;

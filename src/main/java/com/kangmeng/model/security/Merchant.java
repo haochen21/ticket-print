@@ -14,6 +14,8 @@ public class Merchant implements Serializable {
 
 	protected String phone;
 
+	protected Boolean printVoice;
+
 	private static final long serialVersionUID = -1573726069064463313L;
 
 	public Merchant() {
@@ -60,4 +62,11 @@ public class Merchant implements Serializable {
 		this.deviceNo = deviceNo;
 	}
 
+	public Boolean getPrintVoice() {
+		return printVoice;
+	}
+
+	public void setPrintVoice(Boolean printVoice) {
+		this.printVoice = printVoice;
+	}
 }

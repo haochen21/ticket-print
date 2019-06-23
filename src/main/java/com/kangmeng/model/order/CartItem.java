@@ -4,6 +4,8 @@ import com.kangmeng.model.order.store.Product;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CartItem implements Serializable {
 
@@ -16,6 +18,8 @@ public class CartItem implements Serializable {
 	protected BigDecimal unitPrice;
 
 	protected BigDecimal totalPrice;
+
+	protected List<SelectProductProperty> selectProductProperties = new ArrayList<>();
 
 	protected Product product;
 
@@ -63,6 +67,18 @@ public class CartItem implements Serializable {
 
 	public void setTotalPrice(BigDecimal totalPrice) {
 		this.totalPrice = totalPrice;
+	}
+
+	public List<SelectProductProperty> getSelectProductProperties() {
+		return selectProductProperties;
+	}
+
+	public void setSelectProductProperties(List<SelectProductProperty> selectProductProperties) {
+		this.selectProductProperties = selectProductProperties;
+	}
+
+	public static long getSerialVersionUID() {
+		return serialVersionUID;
 	}
 
 	public Product getProduct() {
