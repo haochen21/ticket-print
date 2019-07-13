@@ -29,6 +29,12 @@ public class Cart implements Serializable {
 
 	protected Boolean needPay;
 
+	protected BigDecimal takeOutFee;
+
+	protected BigDecimal productPrice;
+
+	protected BigDecimal packageFee;
+
 	protected BigDecimal totalPrice;
 
 	protected Integer payTimeLimit;
@@ -133,6 +139,30 @@ public class Cart implements Serializable {
 
 	public void setNeedPay(Boolean needPay) {
 		this.needPay = needPay;
+	}
+
+	public BigDecimal getTakeOutFee() {
+		return takeOutFee;
+	}
+
+	public void setTakeOutFee(BigDecimal takeOutFee) {
+		this.takeOutFee = takeOutFee;
+	}
+
+	public BigDecimal getProductPrice() {
+		return productPrice;
+	}
+
+	public void setProductPrice(BigDecimal productPrice) {
+		this.productPrice = productPrice;
+	}
+
+	public BigDecimal getPackageFee() {
+		return packageFee;
+	}
+
+	public void setPackageFee(BigDecimal packageFee) {
+		this.packageFee = packageFee;
 	}
 
 	public BigDecimal getTotalPrice() {

@@ -13,6 +13,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -228,17 +229,12 @@ public class DeviceMsgListener extends Thread {
         val += LINE_BREAK + DIVIDING_LINE;
         val += LINE_BREAK + "下单时间:" + DATE_FORMAT.format(cart.getCreatedOn());
         val += LINE_BREAK + DIVIDING_LINE;
-        val += LINE_BREAK + "商品名称" + getBlank(4, " ") + "价格" + getBlank(3, " ") + "数量" + getBlank(5, " ") + "金额";
+        val += LINE_BREAK + "商品名称" + getBlank(4, " ") + "数量" + getBlank(3, " ") + "价格" + getBlank(5, " ") + "金额";
         for (CartItem item : cart.getCartItems()) {
-            String productName = item.getName();
-            String name = productName.substring(0, productName.length() > 12 ? 12 : productName.length());
-            val += LINE_BREAK + name;
-            val += getBlank(12 - getLengthWithChinese(name), " ");
-
-            String price = formatPrice(item.getUnitPrice().doubleValue());
-            String quantity = formatQuantity(item.getQuantity());
-            String productTotalPrice = formatTotalPrice(item.getTotalPrice().doubleValue());
-            val += formatProduct(price + quantity + productTotalPrice);
+            val += LINE_BREAK + item.getName()+LINE_BREAK;
+            val += getBlank(12, " ")+item.getQuantity()+ getBlank(7 - (""+item.getQuantity()).length(), " ");
+            val += formatPrice(item.getUnitPrice().doubleValue());
+            val += formatTotalPrice(item.getTotalPrice().doubleValue());
 
             for (SelectProductProperty selectProductProperty : item.getSelectProductProperties()) {
                 val += LINE_BREAK + selectProductProperty.getName() + getBlank(1, " ") + selectProductProperty.getValue();
@@ -251,6 +247,10 @@ public class DeviceMsgListener extends Thread {
         }
 
         val += LINE_BREAK + DIVIDING_LINE;
+
+        if (cart.getTakeOutFee() != null && cart.getTakeOutFee().compareTo(BigDecimal.ZERO) != 0) {
+            val += LINE_BREAK + formatTakeOutFee(cart.getTakeOutFee().doubleValue());
+        }
 
         val += LINE_BREAK + formatTotalSumPrice(cart.getTotalPrice().doubleValue());
         val += LINE_BREAK + getBlank(MAX_WIDTH, " ");
@@ -272,16 +272,22 @@ public class DeviceMsgListener extends Thread {
     }
 
     private String formatPrice(double price) {
-        return DECIMAL_FORMAT.format(price);
+        String priceStr = DECIMAL_FORMAT.format(price);
+        return priceStr;
     }
 
     private String formatQuantity(int quantity) {
-        return getBlank(5 - ("" + quantity).length(), " ") + quantity;
+        return "" + quantity;
     }
 
     private String formatTotalPrice(double totalPrice) {
         String totalPriceStr = DECIMAL_FORMAT.format(totalPrice);
-        return getBlank(11 - totalPriceStr.length(), " ") + totalPriceStr;
+        return getBlank(7 - totalPriceStr.length(), " ") + totalPriceStr;
+    }
+
+    private String formatTakeOutFee(double takeOutFee) {
+        String takeOutFeeStr = DECIMAL_FORMAT.format(takeOutFee);
+        return getBlank(MAX_WIDTH - takeOutFeeStr.length() - 8, " ") + "快递费: " + takeOutFeeStr;
     }
 
     private String formatTotalSumPrice(double totalSumPrice) {
